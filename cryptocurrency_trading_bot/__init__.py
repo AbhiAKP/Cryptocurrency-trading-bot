@@ -1,3 +1,4 @@
+from .trading_strategies import *
 from .binance_endpoint import *
 from .api_keys import *
 from .user import *

@@ -3,7 +3,7 @@ import requests
 from binance import Client
 from cryptocurrency_trading_bot import api_keys
 
-class User:
+class User(Client):
     def __init__(self):
         self._api_key = api_keys.API_KEY
         self._api_secret = api_keys.API_SECRET
@@ -11,17 +11,13 @@ class User:
         try:
             self._client = Client(self._api_key, self._api_secret)
         except socket.timeout:
-            print("[x] "+ticker+" socket timed out")
-            print("[x] Terminating trading with "+ticker)
+            print("[x] socket timed out")
             exit()
         except requests.exceptions.Timeout:
-            print("[x] "+ticker+" socket timed out")
-            print("[x] Terminating trading with "+ticker)
+            print("[x] socket timed out")
             exit()
         except requests.exceptions.ConnectionError:
-            print("[x] "+ticker+" socket timed out")
-            print("[x] Terminating trading with "+ticker)
-            exit()
+            print("[x] socket timed out")
     
     def get_client(self):
         return self._client
