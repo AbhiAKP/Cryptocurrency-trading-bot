@@ -22,7 +22,7 @@ class Gui:
         if(enable_gui):
            self.create_gui()
     
-    def create_gui():
+    def create_gui(self):
         self.window = tk.Tk()
         self.window.title("Cryptocurrency trading bot") 
         self.window.geometry('1270x720')

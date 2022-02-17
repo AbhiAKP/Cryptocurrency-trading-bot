@@ -6,8 +6,6 @@ import datetime
 import pandas as pd
 from binance import Client
 
-import api_keys
-
 class BinanceEndpoint:
     price_getter_flag = True
     updating_data_frame_mutex = True
@@ -47,6 +45,8 @@ class BinanceEndpoint:
         orders = binance_client.get_all_orders(symbol=ticker, limit=10)
         print(orders)
 
+    def buy():
+        pass
     # def get_price_data_frame(self):
     #     return self.data_frame
     
@@ -77,6 +77,6 @@ class BinanceEndpoint:
     #         while(i<12 and self.price_getter_flag):
     #             time.sleep(4.85)
     #             i = i + 1
-be = BinanceEndpoint()
-binance_client = Client(api_keys.API_KEY, api_keys.API_SECRET)
-be.get_order_book(binance_client, "BTCUSDT", 10)
+# be = BinanceEndpoint()
+# binance_client = Client(api_keys.API_KEY, api_keys.API_SECRET)
+# be.get_order_book(binance_client, "BTCUSDT", 10)
