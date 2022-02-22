@@ -3,7 +3,7 @@ import requests
 from binance import Client
 from cryptocurrency_trading_bot import api_keys
 
-class User(Client):
+class User():
     def __init__(self):
         self._api_key = api_keys.API_KEY
         self._api_secret = api_keys.API_SECRET
