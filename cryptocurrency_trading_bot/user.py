@@ -5,6 +5,7 @@ from cryptocurrency_trading_bot import api_keys
 
 class User():
     def __init__(self):
+        #Creates a binance client object using api key and secret
         self._api_key = api_keys.API_KEY
         self._api_secret = api_keys.API_SECRET
         

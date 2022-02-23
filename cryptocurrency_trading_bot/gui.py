@@ -1,5 +1,3 @@
-# import threading
-# import pandas as pd
 import mplfinance as mpf
 import matplotlib
 import matplotlib.pyplot as plt
@@ -19,13 +17,10 @@ class Gui:
         self.user = ctb.User()
         self.binance_end_point = ctb.BinanceEndpoint()
 
-        # trader_thread = threading.Thread(target = self.start_trading)
-        # trader_thread.start()
+        self.trading_strategies = ctb.Trading_Strategies()
 
         if(enable_gui):
            self.create_gui()
-    
-
 
     def create_canvas(self):
             # print("executed trade.............................")
@@ -42,7 +37,6 @@ class Gui:
             self.canvas = FigureCanvasTkAgg(fig, self.graph_frame)
             self.canvas.draw()
             self.canvas.get_tk_widget().pack(side=LEFT, fill="both", expand=True, padx=35, pady=15)
-            print("Graph Updated")
 
             self.window.after(30000, self.create_canvas)
                         
@@ -129,7 +123,7 @@ class Gui:
     def on_closing(self):
         plt.close('all')
         self.window.destroy()
-        # self.continue_trading_flag = False
+        self.trading_strategies.continue_trading_flag = False
 
 
 
