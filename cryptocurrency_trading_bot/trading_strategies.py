@@ -19,16 +19,16 @@ class Trading_Strategies:
     def buy(self):
         if(self.investment_amount > self.current_balance):
             time, price = self.binance_end_point.get_current_price(self.ticker)
-            self.holding_amount += price/investment_amount
-            self.current_balance -= investment_amount
-            trades.append({"Ticker":self.ticker, "amount":price/investment_amount, "trade_type":"BUY", "time":time, "price":price})
+            self.holding_amount += price/self.investment_amount
+            self.current_balance -= self.investment_amount
+            self.trades.append({"Ticker":self.ticker, "amount":price/self.investment_amount, "trade_type":"BUY", "time":time, "price":price})
 
-    def sell():
+    def sell(self):
         if(self.investment_amount > self.current_balance):
             time, price = self.binance_end_point.get_current_price(self.ticker)
-            self.holding_amount += price/investment_amount
-            self.current_balance -= investment_amount
-            trades.append({"Ticker":self.ticker, "amount":price/investment_amount, "trade_type":"BUY", "time":time, "price":price})
+            self.holding_amount += price/self.investment_amount
+            self.current_balance -= self.investment_amount
+            self.trades.append({"Ticker":self.ticker, "amount":price/self.investment_amount, "trade_type":"BUY", "time":time, "price":price})
 
     def rsi(self, df, window_length):
         while(self.continue_trading_flag):
@@ -69,7 +69,7 @@ class Trading_Strategies:
             else:
                 self.status = "current rsi value is "+str(curr_val)+", waiting for optimal buy/sell points"
             
-            print(status)
+            print(self.status)
             
             i = 0
             while(self.continue_trading_flag and i < 115):
