@@ -5,7 +5,6 @@ import requests
 import datetime
 import pandas as pd
 from binance import Client
-import api_keys
 
 class BinanceEndpoint:
     
