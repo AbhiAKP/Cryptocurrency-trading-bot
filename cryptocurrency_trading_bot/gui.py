@@ -59,9 +59,8 @@ class Gui:
         if isinstance(self.single_trade_button, list):
             for x in range(11):
                 self.single_trade_button[x].destroy()
-            # del self.single_trade_button
 
-        #displaying latest trades one by one using looping
+        #displaying latest trades one by one, using looping
         self.single_trade_button = list()
         for x in range(11):
             symbol = self.recent_trades_dummy_data[0]['symbol']
@@ -69,8 +68,15 @@ class Gui:
             cummulative_qty = self.recent_trades_dummy_data[0]['cummulativeQuoteQty']
             trade_type = self.recent_trades_dummy_data[0]['type']
             trade_side = self.recent_trades_dummy_data[0]['side']
+            if (trade_side == 'SELL'):
+                btn_bg = "#ffabab"
+                self.recent_trades_dummy_data[0]['side'] = 'BUY'
+            else:
+                btn_bg = "#bbffb3"
+                self.recent_trades_dummy_data[0]['side'] = 'SELL'
+
             display_text = "      {}        {}        {}        {}        {}      ".format(symbol, executed_qty, cummulative_qty, trade_type, trade_side)
-            self.single_trade_button.append( Button(self.trade_frame, text=display_text, bg="#e3efff", command=lambda y=x: self.trade_details(y)) )
+            self.single_trade_button.append( Button(self.trade_frame, text=display_text, bg=btn_bg, command=lambda y=x: self.trade_window(y)) )
             self.single_trade_button[x].pack(padx=10, pady=11)
 
         #comment below line later after real data is accessible
@@ -81,9 +87,21 @@ class Gui:
     
 
 
-    def trade_details(self, trade_num):
-        print("trade_num: " + str(trade_num))
+    def trade_window(self, trade_num):
+        self.new_window = Toplevel(self.window)
+        self.new_window.title("Trade Details")
+        self.new_window.resizable(False, False)
+        self.new_window.iconphoto(True, self.app_icon)
+        self.new_window.config(background="#84a6d1")
 
+        counter = 0
+        for x in range(6):
+            for y in range(3):
+                key = list(self.recent_trades_dummy_data[trade_num])[counter]
+                value = self.recent_trades_dummy_data[trade_num][key]
+                Label(self.new_window, text= key + ":  " + str(value), font=('Arial', 11, "bold"), bg="#002c73", fg="#ffffff", relief=GROOVE, bd=5).grid(row=x, column=y, padx=20, pady=15, sticky='ew', ipadx=3, ipady=3)
+                counter += 1
+            
 
 
     def create_gui(self):
@@ -124,7 +142,7 @@ class Gui:
         #creating multiple tabs in the portfolio frame
         self.s = ttk.Style()
         self.s.configure('.', font=('Arial', 12))
-        self.notebook = ttk.Notebook(self.portfolio_frame)
+        self.notebook = ttk.Notebook(self.portfolio_frame, width=1200, height=300)
 
         self.open_orders = Frame(self.notebook, width=1200, height=260, bg="#4656fa")
         self.order_history = Frame(self.notebook, width=1200, height=260, bg="#4656fa")
@@ -140,8 +158,25 @@ class Gui:
 
         # Label(self.open_orders, text="This is the open orders section").pack(side=TOP)
         # Label(self.order_history, text="This is the order_history section").pack(side=TOP)
-        # Label(self.trade_history, text="This is the trade history section").pack(side=TOP)
+        # Label(self.portfolio, text="This is the trade history section").pack(side=TOP)
         # Label(self.available_funds, text="This is the funds section").pack(side=TOP)
+
+
+        #displaying open_orders data
+        for x in range(11):
+            temp_string = ""
+            for key,value in self.portfolio_dummy_data[0].items():
+                temp_string += key + ": " + str(value) + "      "
+            Label(self.open_orders, text=temp_string, bg="#fae19d", font=('Arial', 10)).pack(ipady=2, ipadx=10, pady=4, fill="x")
+
+        #displaying order_history data
+        for x in range(11):
+            temp_string = ""
+            for key,value in self.recent_trades_dummy_data[0].items():
+                temp_string += key + ": " + str(value) + "      "
+            Label(self.order_history, text=temp_string, bg="#fae19d", font=('Arial', 10)).pack(ipady=2, ipadx=10, pady=4)
+
+    
 
         #creating a graph frame to plot the candle stick chart
         self.graph_frame = Frame(self.window, width=800, bg="#232a75", height=500, relief=GROOVE, borderwidth=1)
@@ -171,7 +206,7 @@ class Gui:
     def on_closing(self):
         plt.close('all')
         self.window.destroy()
-        self.trading_strategies.continue_trading_flag = False
+        # self.trading_strategies.continue_trading_flag = False
 
 
 
