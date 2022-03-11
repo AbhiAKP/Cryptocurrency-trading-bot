@@ -57,6 +57,7 @@ class BinanceEndpoint:
     #Get the current price of a particular ticker
     def get_current_price(self, ticker, client):
         try:
+            print(ticker)
             candle_sticks = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "3 minute ago UTC")
             return candle_sticks[-1][0], candle_sticks[-1][4]
         except socket.timeout:
