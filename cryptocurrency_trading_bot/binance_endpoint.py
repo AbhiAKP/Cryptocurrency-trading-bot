@@ -7,11 +7,14 @@ import pandas as pd
 from binance import Client
 
 class BinanceEndpoint:
+
+    def __init__(self, binance_client):
+        self.binance_client = binance_client
     
     #Gets a dataframe with the pricedata of any crypto in any time period and interval
-    def get_historical_price_data(self, ticker, time_interval, time_period, binance_client):
+    def get_historical_price_data(self, ticker, time_interval, time_period):
         try:
-            candle_sticks = binance_client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, time_interval)
+            candle_sticks = self.binance_client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, time_interval)
             for i in range(len(candle_sticks)):
                 candle_sticks[i] = candle_sticks[i][:6]
                 candle_sticks[i][0] = datetime.datetime.fromtimestamp(candle_sticks[i][0]/1000).strftime('%Y-%m-%d %H:%M:%S.%f')
@@ -38,11 +41,21 @@ class BinanceEndpoint:
             print("[x] connection error timed out")
             exit()
 
-
     #gets the past orders placed on a specific cryptocurrency
-    def get_order_book(self, binance_client, ticker, limit):
+    def get_order_book(self, ticker, limit):
         try:
-            orders = binance_client.get_all_orders(symbol=ticker, limit=10)
+            orders = self.binance_client.get_all_orders(symbol=ticker, limit=limit)
+            for order in orders:
+                ts = int(order["time"])
+                order["time"] = datetime.datetime.utcfromtimestamp(ts/1000).strftime('%Y-%m-%d %H:%M') + " GTC"
+                order["type"] = "LIMT" if order["type"].lower() == "limit" else "MKT"
+                order.pop("clientOrderId")
+                order.pop("orderListId")
+                order.pop("timeInForce")
+                order.pop("icebergQty")
+                order.pop("isWorking")
+                order.pop("price")
+                order.pop("origQuoteOrderQty")
             return orders
         except socket.timeout:
             print("[x]  socket timed out")
@@ -55,10 +68,10 @@ class BinanceEndpoint:
             exit()
 
     #Get the current price of a particular ticker
-    def get_current_price(self, ticker, client):
+    def get_current_price(self, ticker):
         try:
             print(ticker)
-            candle_sticks = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "3 minute ago UTC")
+            candle_sticks = self.binance_client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "3 minute ago UTC")
             return candle_sticks[-1][0], candle_sticks[-1][4]
         except socket.timeout:
             print("[x]  socket timed out")
