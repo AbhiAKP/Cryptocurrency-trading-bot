@@ -1,4 +1,5 @@
 import os
+import shutil
 import threading
 import matplotlib
 from tkinter import *
@@ -10,7 +11,6 @@ import cryptocurrency_trading_bot as ctb
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 
-
 class Gui:
     canvas = None
     single_trade_button = None
@@ -19,7 +19,6 @@ class Gui:
         self.enable_gui = enable_gui
         #Checks if the config directory exists
         if(os.path.isdir("config") and os.path.isfile("config/api_keys.py")):
-            print("test")
             self.initiate_trading()
         else:
             #If the config directory doesn't exist, create an initial window to prompt the user to enter api_key and api_secret
@@ -36,80 +35,12 @@ class Gui:
 
         self.trading_strategies = ctb.Trading_Strategies(ticker="BTCUSDT", binance_end_point=self.binance_end_point, user=self.user, paper_trading=True)
         trading_thread = threading.Thread(target = self.trading_strategies.rsi, args = (14,))
-        # trading_thread.start()
+        trading_thread.start()
         
         self.portfolio_dummy_data = [{'symbol': 'BTC', 'balance': '0.00000006', 'symbol_name': 'Bitcoin', 'usd_value': '43923.49000000'}, {'symbol': 'SOL', 'balance': '0.37000000', 'symbol_name': 'Solana', 'usd_value': '101.47000000'}, {'symbol': 'HNT', 'balance': '0.41000000', 'symbol_name': 'Helium', 'usd_value': '27.18000000'}, {'symbol': 'USDT', 'balance': '0.07441810', 'symbol_name': 'Tether', 'usd_value': 0.0}, {'symbol': 'VET', 'balance': '95.20000000', 'symbol_name': 'Vechain', 'usd_value': '0.05902000'}, {'symbol': 'DOT', 'balance': '0.20000000', 'symbol_name': 'Polkadot', 'usd_value': '19.63000000'}, {'symbol': 'ICX', 'balance': '4.70000000', 'symbol_name': 'Icon', 'usd_value': '0.77500000'}, {'symbol': 'BNB', 'balance': '0.00032104', 'symbol_name': 'Binance coin', 'usd_value': '426.20000000'}]
         
         if(self.enable_gui):
            self.create_gui()
-
-
-    def create_canvas(self):
-            market_colours = mpf.make_marketcolors(up='#07d400',down='#d40000',inherit=True)
-            mpf_style  = mpf.make_mpf_style(base_mpf_style='nightclouds',marketcolors=market_colours)
-            
-           
-            data_frame = self.binance_end_point.get_historical_price_data("BTCUSDT", "100 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
-            fig, _ = mpf.plot(data_frame, type="candle", mav=(20), volume=True, tight_layout=True, style=mpf_style, returnfig=True)
-
-            #deletes the previous canvas so that the next canvas can occupy the space
-            if (isinstance(self.canvas, matplotlib.backends.backend_tkagg.FigureCanvasTkAgg)):
-                self.canvas.get_tk_widget().destroy()
-            self.canvas = FigureCanvasTkAgg(fig, self.graph_frame)
-            self.canvas.draw()
-            self.canvas.get_tk_widget().pack(side=LEFT, fill="both", expand=True, padx=35, pady=15)
-
-            self.window.after(30000, self.create_canvas)
-                        
-
-
-    def update_recent_trades(self, call_num = None):
-        # self.binance_client.get_order_book(self.user.get_client, "BTCUSDT", 10)
-
-        #This is to create the label once and not every time during recursion
-        if (call_num == 0):
-            heading_text = " Coin Name\tAmount(BTC)\tPrice(USDT)\tType\tSide "
-            self.heading_label = Label(self.trade_frame, text=heading_text, font=('Arial', 9, "bold"), bg="#b8d2ff").pack(pady=15, padx=5)
-        
-        #destroy all existing widgets so that new widgets can occupy the space
-        if isinstance(self.single_trade_button, list):
-            for x in range(11):
-                self.single_trade_button[x].destroy()
-
-        #displaying latest trades one by one, using looping
-        self.single_trade_button = list()
-        for x in range(len(self.user.trades) - 11, len(self.user.trades)):
-            symbol = self.user.trades[x]['symbol']
-            executed_qty = self.user.trades[x]['executedQty']
-            cummulative_qty = self.user.trades[x]['cummulativeQuoteQty']
-            trade_type = self.user.trades[x]['type']
-            trade_side = self.user.trades[x]['side']
-
-            if (trade_side == 'SELL'):
-                btn_bg = "#ffabab"
-            else:
-                btn_bg = "#bbffb3"
-
-            display_text = " {}\t{}\t{}\t{}\t{} ".format(symbol, executed_qty, cummulative_qty, trade_type, trade_side)
-            self.single_trade_button.append( Button(self.trade_frame, text=display_text, bg=btn_bg, command=lambda y=x: self.trade_window(y), width=58))
-            self.single_trade_button[-1].pack(padx=10, pady=11)
-
-
-    def trade_window(self, trade_num):
-        self.new_window = Toplevel(self.window)
-        self.new_window.title("Trade Details")
-        self.new_window.resizable(False, False)
-        self.new_window.iconphoto(True, self.app_icon)
-        self.new_window.config(background="#84a6d1")
-
-        counter = 0
-        for x in range(3):
-            for y in range(3):
-                key = list(self.user.trades[trade_num])[counter]
-                value = self.user.trades[trade_num][key]
-                Label(self.new_window, text= key + ":  " + str(value), font=('Arial', 11, "bold"), bg="#002c73", fg="#ffffff", relief=GROOVE, bd=5).grid(row=x, column=y, padx=20, pady=15, sticky='ew', ipadx=3, ipady=3)
-                counter += 1
-
 
     def create_gui(self):
         self.window = Tk()
@@ -137,7 +68,7 @@ class Gui:
 
         Button(self.menu_frame, image=self.user_icon, bg="white", activebackground="#1f2769", cursor="hand2").pack(side=RIGHT, padx=15)
         Button(self.menu_frame, image=self.setting_icon, bg="white", activebackground="#1f2769", cursor="hand2", command=self.create_settings_window).pack(side=RIGHT, padx=15)
-        Button(self.menu_frame, text="Menu1", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2").pack(side=LEFT, padx=15, ipadx=5)
+        Button(self.menu_frame, text="Reset Config", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.reset_config).pack(side=LEFT, padx=15, ipadx=5)
         Button(self.menu_frame, text="Menu2", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2").pack(side=LEFT, padx=15, ipadx=5)
         Button(self.menu_frame, text="Menu3", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2").pack(side=LEFT, padx=15, ipadx=5)
         Button(self.menu_frame, text="Menu4", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2").pack(side=LEFT, padx=15, ipadx=5)
@@ -206,8 +137,85 @@ class Gui:
         # call update_recent_trades to update the data in trade frame
         self.update_recent_trades(call_num=0)
 
-        self.window.protocol("WM_DELETE_WINDOW",self.on_closing)
+        self.window.protocol("WM_DELETE_WINDOW",self.close_window)
         self.window.mainloop()
+
+    def create_canvas(self):
+            market_colours = mpf.make_marketcolors(up='#07d400',down='#d40000',inherit=True)
+            mpf_style  = mpf.make_mpf_style(base_mpf_style='nightclouds',marketcolors=market_colours)
+            
+           
+            data_frame = self.binance_end_point.get_historical_price_data("BTCUSDT", "100 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
+            fig, _ = mpf.plot(data_frame, type="candle", mav=(20), volume=True, tight_layout=True, style=mpf_style, returnfig=True)
+
+            #deletes the previous canvas so that the next canvas can occupy the space
+            if (isinstance(self.canvas, matplotlib.backends.backend_tkagg.FigureCanvasTkAgg)):
+                self.canvas.get_tk_widget().destroy()
+            self.canvas = FigureCanvasTkAgg(fig, self.graph_frame)
+            self.canvas.draw()
+            self.canvas.get_tk_widget().pack(side=LEFT, fill="both", expand=True, padx=35, pady=15)
+
+            self.window.after(30000, self.create_canvas)
+                        
+
+
+    def update_recent_trades(self, call_num = None):
+        # self.binance_client.get_order_book(self.user.get_client, "BTCUSDT", 10)
+
+        #This is to create the label once and not every time during recursion
+        if (call_num == 0):
+            self.new_trade_flag = True
+            heading_text = " Coin Name\tAmount(BTC)\tPrice(USDT)\tType\tSide "
+            self.heading_label = Label(self.trade_frame, text=heading_text, font=('Arial', 9, "bold"), bg="#b8d2ff").pack(pady=15, padx=5)
+        
+        if(not self.new_trade_flag):
+            self.window.after(15000, self.update_recent_trades)
+
+        #destroy all existing widgets so that new widgets can occupy the space
+        if isinstance(self.single_trade_button, list):
+            for x in range(11):
+                self.single_trade_button[x].destroy()
+
+        #displaying latest trades one by one, using looping
+        self.single_trade_button = list()
+        for x in range(len(self.user.trades) - 11, len(self.user.trades)):
+            symbol = self.user.trades[x]['symbol']
+            executed_qty = self.user.trades[x]['executedQty']
+            cummulative_qty = self.user.trades[x]['cummulativeQuoteQty']
+            trade_type = self.user.trades[x]['type']
+            trade_side = self.user.trades[x]['side']
+
+            if (trade_side == 'SELL'):
+                btn_bg = "#ffabab"
+            else:
+                btn_bg = "#bbffb3"
+
+            display_text = " {}\t{}\t{}\t{}\t{} ".format(symbol, executed_qty, cummulative_qty, trade_type, trade_side)
+            self.single_trade_button.append( Button(self.trade_frame, text=display_text, bg=btn_bg, command=lambda y=x: self.trade_window(y), width=58))
+            self.single_trade_button[-1].pack(padx=10, pady=11)
+        self.new_trade_flag = False
+        self.window.after(15000, self.update_recent_trades)
+
+
+    def trade_window(self, trade_num):
+        self.new_window = Toplevel(self.window)
+        self.new_window.title("Trade Details")
+        self.new_window.resizable(False, False)
+        self.new_window.iconphoto(True, self.app_icon)
+        self.new_window.config(background="#84a6d1")
+
+        counter = 0
+        for x in range(3):
+            for y in range(3):
+                key = list(self.user.trades[trade_num])[counter]
+                value = self.user.trades[trade_num][key]
+                Label(self.new_window, text= key + ":  " + str(value), font=('Arial', 11, "bold"), bg="#002c73", fg="#ffffff", relief=GROOVE, bd=5).grid(row=x, column=y, padx=20, pady=15, sticky='ew', ipadx=3, ipady=3)
+                counter += 1
+
+    def reset_config(self):
+        shutil.rmtree("config")
+        self.close_window()
+        self.create_initial_window()
 
     #Initial window to prompt user to enter api_key and api_secret
     def create_initial_window(self):
@@ -428,7 +436,7 @@ class Gui:
             MACD_UV.place(x=5,y=170)
             text_box6.place(x=130,y=170)
 
-    def on_closing(self):
+    def close_window(self):
         plt.close('all')
         self.window.destroy()
         self.trading_strategies.continue_trading_flag = False

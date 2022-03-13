@@ -10,8 +10,6 @@ class User():
     
         self._api_key = str(api_file.readline())[:-1]
         self._api_secret = str(api_file.readline())
-
-        print(self._api_key, self._api_secret)
         
         try:
             self._client = Client(self._api_key, self._api_secret)

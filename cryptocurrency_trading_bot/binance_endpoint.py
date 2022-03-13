@@ -1,6 +1,5 @@
 import os
 import time
-import socket
 import requests
 import datetime
 import pandas as pd
@@ -70,9 +69,8 @@ class BinanceEndpoint:
     #Get the current price of a particular ticker
     def get_current_price(self, ticker):
         try:
-            print(ticker)
             candle_sticks = self.binance_client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "3 minute ago UTC")
-            return candle_sticks[-1][0], candle_sticks[-1][4]
+            return candle_sticks[-1][4], datetime.datetime.utcfromtimestamp(int(candle_sticks[-1][0])/1000).strftime('%Y-%m-%d %H:%M') + " GTC"
         except socket.timeout:
             print("[x]  socket timed out")
             exit()

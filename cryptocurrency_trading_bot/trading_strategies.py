@@ -17,17 +17,17 @@ class Trading_Strategies:
     #Creates a paper buy order
     def paper_buy(self):
         if(self.user.investment_amount < self.user.paper_balance):
-            time, price = self.binance_end_point.get_current_price(self.ticker)
+            price, time = self.binance_end_point.get_current_price(self.ticker)
             self.user.holding_amount += self.user.investment_amount/float(price)
             self.user.paper_balance -= self.user.investment_amount
-            self.trades.append({"Ticker":self.ticker, "btc_amount":self.user.investment_amount/float(price), "trade_type":"PAPER_BUY", "account_balance": self.user.paper_balance, "btc_balance": self.user.holding_amount ,"time":time, "price":price})
-            print(self.trades)
+            self.user.trades.append({"symbol":self.ticker, "executedQty":self.user.investment_amount/float(price),"cummulativeQuoteQty": self.user.investment_amount ,"side": "BUY" ,"type":"PAPR", "account_balance": self.user.paper_balance, "btc_balance": self.user.holding_amount ,"time":time, "price":price, "trade_type":"Paper BUY"})
+            print(self.user.trades[-1])
 
     def paper_sell(self):
         if(self.user.holding_amount > 0.0):
-            time, price = self.binance_end_point.get_current_price(self.ticker)
+            price, time = self.binance_end_point.get_current_price(self.ticker)
             self.user.paper_balance += price*self.user.holding_amount
-            self.trades.append({"Ticker":self.ticker, "amount":price*self.user.holding_amount, "trade_type":"PAPER_SELL", "time":time, "price": price})
+            self.user.trades.append({"symbol":self.ticker, "executedQty": self.user.holding_amount, "cummulativeQuoteQty": price*self.user.holding_amount, "side": "SELL" ,"type":"PAPR", "account_balance": self.user.paper_balance, "btc_balance": self.user.holding_amount ,"time":time, "price":price, "trade_type":"Paper SELL"})
             self.user.holding_amount = 0.0
 
     def rsi(self, window_length):
@@ -65,7 +65,7 @@ class Trading_Strategies:
             if(curr_val > 55):
                 self.status = "Selling Assets"
                 self.paper_sell()
-            elif(curr_val < 45):
+            elif(curr_val < 55):
                 self.status = "Buying Assets"
                 self.paper_buy()
             else:
