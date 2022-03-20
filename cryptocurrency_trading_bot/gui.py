@@ -225,7 +225,7 @@ class Gui:
             mpf_style  = mpf.make_mpf_style(base_mpf_style='nightclouds',marketcolors=market_colours)
             
            
-            data_frame = self.binance_end_point.get_historical_price_data("BTCUSDT", "100 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
+            data_frame = self.binance_end_point.get_historical_price_data("BTCUSDT", "50 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
             fig, _ = mpf.plot(data_frame, type="candle", mav=(20), volume=True, tight_layout=True, style=mpf_style, returnfig=True)
 
             #deletes the previous canvas so that the next canvas can occupy the space
@@ -300,24 +300,25 @@ class Gui:
     def update_profits(self):
         while(self.continue_flag):
             price, time_of_price = self.binance_end_point.get_current_price("BTCUSDT")
-            for ord_index in range(len(self.user.open_orders)):
-                curr_val = self.user.open_orders[ord_index]["btc_amount"]*float(price)
-                if(curr_val >= self.user.investment_amount*self.user.leverage):
-                    profits = "+"
-                    fl_profit = (curr_val - self.user.investment_amount*self.user.leverage)/self.user.investment_amount
-                    str_profit = str(fl_profit)
-                    if(len(str_profit) > 6):
-                        str_profit = str_profit[:6]
-                    profits += str_profit + " %"
-                else:
-                    profits = "-"
-                    fl_profit = (self.user.investment_amount*self.user.leverage - curr_val)/self.user.investment_amount
-                    str_profit = str(fl_profit)
-                    if(len(str_profit) > 6):
-                        str_profit = str_profit[:6]
-                    profits += str_profit + " %"
-                self.user.open_orders[ord_index]["profits"] = profits
-                # print(self.user.open_orders[ord_index], price)
+            if(price and time_of_price):
+                for ord_index in range(len(self.user.open_orders)):
+                    curr_val = self.user.open_orders[ord_index]["btc_amount"]*float(price)
+                    if(curr_val >= self.user.investment_amount*self.user.leverage):
+                        profits = "+"
+                        fl_profit = (curr_val - self.user.investment_amount*self.user.leverage)/self.user.investment_amount
+                        str_profit = str(fl_profit)
+                        if(len(str_profit) > 6):
+                            str_profit = str_profit[:6]
+                        profits += str_profit + " %"
+                    else:
+                        profits = "-"
+                        fl_profit = (self.user.investment_amount*self.user.leverage - curr_val)/self.user.investment_amount
+                        str_profit = str(fl_profit)
+                        if(len(str_profit) > 6):
+                            str_profit = str_profit[:6]
+                        profits += str_profit + " %"
+                    self.user.open_orders[ord_index]["profits"] = profits
+                    # print(self.user.open_orders[ord_index], price)
             
             time.sleep(1)
     

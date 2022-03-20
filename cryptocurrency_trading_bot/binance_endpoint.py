@@ -13,6 +13,7 @@ class BinanceEndpoint:
     
     #Gets a dataframe with the pricedata of any crypto in any time period and interval
     def get_historical_price_data(self, ticker, time_interval, time_period):
+        # print("get historical prices, time:", time_interval)
         try:
             candle_sticks = self.binance_client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, time_interval)
             for i in range(len(candle_sticks)):
@@ -32,11 +33,11 @@ class BinanceEndpoint:
             return data_frame
 
         except Exception as e:
-            print(e)
-            exit()
+            return None
 
     #gets the past orders placed on a specific cryptocurrency
     def get_order_book(self, ticker, limit):
+        # print("get order book, limit:", limit)
         try:
             orders = self.binance_client.get_all_orders(symbol=ticker, limit=limit)
             for order in orders:
@@ -53,29 +54,21 @@ class BinanceEndpoint:
             orders.reverse()
             return orders
         except socket.timeout:
-            print("[x]  socket timed out")
-            exit()
+            return None, None
         except requests.exceptions.Timeout:
-            print("[x] request timed out")
-            exit()
+            return None, None
         except requests.exceptions.ConnectionError:
-            print("[x] connection error timed out")
-            exit()
+            return None, None
 
     #Get the current price of a particular ticker
     def get_current_price(self, ticker):
+        # print("get current price")
         try:
             candle_sticks = self.binance_client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "3 minute ago UTC")
             return candle_sticks[-1][4], datetime.datetime.utcfromtimestamp(int(candle_sticks[-1][0])/1000).strftime('%Y-%m-%d %H:%M') + " GTC"
         except socket.timeout:
-            print("[x]  socket timed out")
-            exit()
+            return None, None
         except requests.exceptions.Timeout:
-            print("[x] request timed out")
-            exit()
+            return None, None
         except requests.exceptions.ConnectionError:
-            print("[x] connection error timed out")
-            exit()
-
-    def buy():
-        pass
+            return None, None
