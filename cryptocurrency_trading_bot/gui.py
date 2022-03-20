@@ -41,8 +41,8 @@ class Gui:
         self.update_profits_thread = threading.Thread(target = self.update_profits)
         self.update_profits_thread.start()
 
-        self.update_profits_status = threading.Thread(target = self.update_status)
-        self.update_profits_status.start()
+        self.update_profits_status_thread = threading.Thread(target = self.update_status)
+        self.update_profits_status_thread.start()
 
         self.portfolio_dummy_data = [{'symbol': 'BTC', 'balance': '0.00000006', 'symbol_name': 'Bitcoin', 'usd_value': '43923.49000000'}, {'symbol': 'SOL', 'balance': '0.37000000', 'symbol_name': 'Solana', 'usd_value': '101.47000000'}, {'symbol': 'HNT', 'balance': '0.41000000', 'symbol_name': 'Helium', 'usd_value': '27.18000000'}, {'symbol': 'USDT', 'balance': '0.07441810', 'symbol_name': 'Tether', 'usd_value': 0.0}, {'symbol': 'VET', 'balance': '95.20000000', 'symbol_name': 'Vechain', 'usd_value': '0.05902000'}, {'symbol': 'DOT', 'balance': '0.20000000', 'symbol_name': 'Polkadot', 'usd_value': '19.63000000'}, {'symbol': 'ICX', 'balance': '4.70000000', 'symbol_name': 'Icon', 'usd_value': '0.77500000'}, {'symbol': 'BNB', 'balance': '0.00032104', 'symbol_name': 'Binance coin', 'usd_value': '426.20000000'}]
         
@@ -691,6 +691,8 @@ class Gui:
             self.trading_thread.join()
         if(self.update_profits_thread.is_alive()):
             self.update_profits_thread.join()
+        if(self.update_profits_status_thread.is_alive()):
+            self.update_profits_status_thread.join()
         plt.close('all')
         self.window.destroy()
 

@@ -15,7 +15,7 @@ class User():
         self.new_trade_flag = True
         
         try:
-            self._client = Client(self._api_key, self._api_secret)
+            self._client = Client(self._api_key, self._api_secret, {"verify": True, "timeout": 20})
         except socket.timeout:
             print("[x] socket timed out")
             exit()

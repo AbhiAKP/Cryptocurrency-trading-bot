@@ -31,14 +31,8 @@ class BinanceEndpoint:
             
             return data_frame
 
-        except socket.timeout:
-            print("[x]  socket timed out")
-            exit()
-        except requests.exceptions.Timeout:
-            print("[x] request timed out")
-            exit()
-        except requests.exceptions.ConnectionError:
-            print("[x] connection error timed out")
+        except Exception as e:
+            print(e)
             exit()
 
     #gets the past orders placed on a specific cryptocurrency
