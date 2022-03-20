@@ -15,22 +15,39 @@ class Trading_Strategies:
         self.paper_trading = paper_trading
     
     #Creates a paper buy order
-    def paper_buy(self):
+    def paper_buy(self, rsi_status):
         if(self.user.investment_amount < self.user.paper_balance):
             price, time = self.binance_end_point.get_current_price(self.ticker)
-            self.user.holding_amount += self.user.investment_amount/float(price)
+            self.user.holding_amount += round(self.user.investment_amount*self.user.leverage/float(price), 8)
             self.user.paper_balance -= self.user.investment_amount
-            self.user.trades.append({"symbol":self.ticker, "executedQty":self.user.investment_amount/float(price),"cummulativeQuoteQty": self.user.investment_amount ,"side": "BUY" ,"type":"PAPR", "account_balance": self.user.paper_balance, "btc_balance": self.user.holding_amount ,"time":time, "price":price, "trade_type":"Paper BUY"})
-            print(self.user.trades[-1])
 
-    def paper_sell(self):
+            inv_str = str(self.user.investment_amount)
+            if(len(inv_str[inv_str.index(".")+1:]) < 8):
+                inv_str += "0"*(8 - len(inv_str[inv_str.index(".")+1:]))
+            
+            self.user.trades.insert(0, {"symbol":self.ticker, "executedQty":round(self.user.investment_amount*self.user.leverage/float(price), 8),"cummulativeQuoteQty": inv_str ,"side": "BUY" ,"type":"PAPR", "leverage": self.user.leverage, "btc_balance": self.user.holding_amount ,"time":time, "price":price, "trade_type":"Paper BUY"})
+            self.user.open_orders.insert(0, {"symbol":self.ticker, "btc_amount":round(self.user.investment_amount*self.user.leverage/float(price), 8),"cummulativeQuoteQty": inv_str  ,"time":time, "trade_type":"Paper BUY", "profits":"+0.0%", "rsi_status": rsi_status, "order_id": "PAPRBUY"+str(len(self.user.trades))})
+            self.user.new_trade_flag = True
+            # print(self.user.trades[-1])
+
+    def paper_sell(self, rsi_status):
         if(self.user.holding_amount > 0.0):
             price, time = self.binance_end_point.get_current_price(self.ticker)
-            self.user.paper_balance += price*self.user.holding_amount
-            self.user.trades.append({"symbol":self.ticker, "executedQty": self.user.holding_amount, "cummulativeQuoteQty": price*self.user.holding_amount, "side": "SELL" ,"type":"PAPR", "account_balance": self.user.paper_balance, "btc_balance": self.user.holding_amount ,"time":time, "price":price, "trade_type":"Paper SELL"})
+            bin_amount = ((self.user.investment_amount*(self.user.leverage - 1))*len(self.user.open_orders))/float(price)
+            self.user.paper_balance += float(price)*(self.user.holding_amount - bin_amount)
+            self.user.trades.insert(0, {"symbol":self.ticker, "executedQty": round(self.user.holding_amount, 8), "cummulativeQuoteQty": round(float(price)*(self.user.holding_amount - bin_amount), 8), "side": "SELL" ,"type":"PAPR", "account_balance": self.user.paper_balance, "btc_balance": self.user.holding_amount ,"time":time, "price":price, "trade_type":"Paper SELL", "rsi_status": rsi_status})
             self.user.holding_amount = 0.0
+            self.user.new_trade_flag = True
+            self.user.open_orders = []
 
+    def wait(self, sleep_time):
+        ti = sleep_time/115
+        i = 0
+        while(self.continue_trading_flag and i < 115):
+                time.sleep(ti)
+                i += 1 
     def rsi(self, window_length):
+        time.sleep(10)
         while(self.continue_trading_flag):
             df = self.binance_end_point.get_historical_price_data("BTCUSDT", "200 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
             pd.options.mode.chained_assignment = None
@@ -62,18 +79,22 @@ class Trading_Strategies:
             curr_val = df.iloc[-1][-1]
 
             #TODO: fix this
-            if(curr_val > 55):
-                self.status = "Selling Assets"
-                self.paper_sell()
-            elif(curr_val < 55):
-                self.status = "Buying Assets"
-                self.paper_buy()
-            else:
-                self.status = "current rsi value is "+str(curr_val)+", waiting for optimal buy/sell points"
+            # if(curr_val > 50):
+            #     self.status = "Selling Assets"
+            #     self.paper_sell()
+            # elif(curr_val < 50):
+            #     self.status = "Buying Assets"
+            #     self.paper_buy()
+            # else:
+            #     self.status = "current rsi value is "+str(curr_val)+", waiting for optimal buy/sell points"
             
-            print(self.status)
-            
-            i = 0
-            while(self.continue_trading_flag and i < 115):
-                time.sleep(0.5)
-                i += 1
+            self.paper_buy(str(round(curr_val,2)))
+            self.wait(5)
+            self.paper_buy(str(round(curr_val,2)))
+            self.wait(5)
+            self.paper_buy(str(round(curr_val,2)))
+            self.wait(60)
+            self.paper_sell(str(round(curr_val,2)))
+            # print(self.status)
+        
+            self.wait(60)

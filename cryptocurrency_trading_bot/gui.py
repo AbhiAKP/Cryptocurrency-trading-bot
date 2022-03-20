@@ -1,4 +1,5 @@
 import os
+import time
 import shutil
 import threading
 import matplotlib
@@ -18,7 +19,7 @@ class Gui:
     def __init__(self, enable_gui):
         self.enable_gui = enable_gui
         #Checks if the config directory exists
-        if(os.path.isdir("config") and os.path.isfile("config/api_keys.py")):
+        if(os.path.isdir("config") and os.path.isfile("config/api_keys")):
             self.initiate_trading()
         else:
             #If the config directory doesn't exist, create an initial window to prompt the user to enter api_key and api_secret
@@ -26,17 +27,20 @@ class Gui:
 
     #Create necessary variables for starting trading and initiate trading
     def initiate_trading(self):
-        self.continue_canvas_flag = True
+        self.continue_flag = True
         self.continue_trading_flag = True
         
         self.user = ctb.User()
         self.binance_end_point = ctb.BinanceEndpoint(self.user.get_client())
-        self.user.set_trading_details(1000, 12, 0, self.binance_end_point.get_order_book("BTCUSDT", 50))
+        self.user.set_trading_details(1000, 12, 0, self.binance_end_point.get_order_book("BTCUSDT", 50), 5)
 
         self.trading_strategies = ctb.Trading_Strategies(ticker="BTCUSDT", binance_end_point=self.binance_end_point, user=self.user, paper_trading=True)
-        trading_thread = threading.Thread(target = self.trading_strategies.rsi, args = (14,))
-        trading_thread.start()
+        self.trading_thread = threading.Thread(target = self.trading_strategies.rsi, args = (14,))
+        self.trading_thread.start()
         
+        self.update_profits_thread = threading.Thread(target = self.update_profits)
+        self.update_profits_thread.start()
+
         self.portfolio_dummy_data = [{'symbol': 'BTC', 'balance': '0.00000006', 'symbol_name': 'Bitcoin', 'usd_value': '43923.49000000'}, {'symbol': 'SOL', 'balance': '0.37000000', 'symbol_name': 'Solana', 'usd_value': '101.47000000'}, {'symbol': 'HNT', 'balance': '0.41000000', 'symbol_name': 'Helium', 'usd_value': '27.18000000'}, {'symbol': 'USDT', 'balance': '0.07441810', 'symbol_name': 'Tether', 'usd_value': 0.0}, {'symbol': 'VET', 'balance': '95.20000000', 'symbol_name': 'Vechain', 'usd_value': '0.05902000'}, {'symbol': 'DOT', 'balance': '0.20000000', 'symbol_name': 'Polkadot', 'usd_value': '19.63000000'}, {'symbol': 'ICX', 'balance': '4.70000000', 'symbol_name': 'Icon', 'usd_value': '0.77500000'}, {'symbol': 'BNB', 'balance': '0.00032104', 'symbol_name': 'Binance coin', 'usd_value': '426.20000000'}]
         
         if(self.enable_gui):
@@ -100,12 +104,15 @@ class Gui:
         # Label(self.available_funds, text="This is the funds section").pack(side=TOP)
 
 
-        #displaying open_orders data
-        for x in range(11):
-            temp_string = ""
-            for key,value in self.portfolio_dummy_data[0].items():
-                temp_string += key + ": " + str(value) + "      "
-            Label(self.open_orders, text=temp_string, bg="#fae19d", font=('Arial', 10)).pack(ipady=2, ipadx=10, pady=4, fill="x")
+        # #displaying open_orders data
+        # for x in range(11):
+        #     temp_string = ""
+        #     for key,value in self.portfolio_dummy_data[0].items():
+        #         temp_string += key + ": " + str(value) + "      "
+        #     Label(self.open_orders, text=temp_string, bg="#fae19d", font=('Arial', 10)).pack(ipady=2, ipadx=10, pady=4, fill="x")
+        self.open_order_canvas = []
+        self.open_order_profits = []
+        self.create_open_order_card()
 
         #displaying order_history data
         for x in range(11):
@@ -163,13 +170,14 @@ class Gui:
         # self.binance_client.get_order_book(self.user.get_client, "BTCUSDT", 10)
 
         #This is to create the label once and not every time during recursion
+        # print("test1",self.user.new_trade_flag)
         if (call_num == 0):
-            self.new_trade_flag = True
             heading_text = " Coin Name\tAmount(BTC)\tPrice(USDT)\tType\tSide "
             self.heading_label = Label(self.trade_frame, text=heading_text, font=('Arial', 9, "bold"), bg="#b8d2ff").pack(pady=15, padx=5)
-        
-        if(not self.new_trade_flag):
-            self.window.after(15000, self.update_recent_trades)
+        elif(not self.user.new_trade_flag):
+            self.window.after(5000, self.update_recent_trades)
+            return
+        # print("test2",self.user.new_trade_flag)
 
         #destroy all existing widgets so that new widgets can occupy the space
         if isinstance(self.single_trade_button, list):
@@ -178,7 +186,7 @@ class Gui:
 
         #displaying latest trades one by one, using looping
         self.single_trade_button = list()
-        for x in range(len(self.user.trades) - 11, len(self.user.trades)):
+        for x in range(min(len(self.user.trades), 11)):
             symbol = self.user.trades[x]['symbol']
             executed_qty = self.user.trades[x]['executedQty']
             cummulative_qty = self.user.trades[x]['cummulativeQuoteQty']
@@ -193,8 +201,8 @@ class Gui:
             display_text = " {}\t{}\t{}\t{}\t{} ".format(symbol, executed_qty, cummulative_qty, trade_type, trade_side)
             self.single_trade_button.append( Button(self.trade_frame, text=display_text, bg=btn_bg, command=lambda y=x: self.trade_window(y), width=58))
             self.single_trade_button[-1].pack(padx=10, pady=11)
-        self.new_trade_flag = False
-        self.window.after(15000, self.update_recent_trades)
+        self.user.new_trade_flag = False
+        self.window.after(5000, self.update_recent_trades)
 
 
     def trade_window(self, trade_num):
@@ -216,6 +224,31 @@ class Gui:
         shutil.rmtree("config")
         self.close_window()
         self.create_initial_window()
+
+    #Keeps updating the profit value of any open orders. Updates every second
+    def update_profits(self):
+        while(self.continue_flag):
+            price, time_of_price = self.binance_end_point.get_current_price("BTCUSDT")
+            for ord_index in range(len(self.user.open_orders)):
+                curr_val = self.user.open_orders[ord_index]["btc_amount"]*float(price)
+                if(curr_val >= self.user.investment_amount*self.user.leverage):
+                    profits = "+"
+                    fl_profit = (curr_val - self.user.investment_amount*self.user.leverage)/self.user.investment_amount
+                    str_profit = str(fl_profit)
+                    if(len(str_profit) > 6):
+                        str_profit = str_profit[:6]
+                    profits += str_profit + " %"
+                else:
+                    profits = "-"
+                    fl_profit = (self.user.investment_amount*self.user.leverage - curr_val)/self.user.investment_amount
+                    str_profit = str(fl_profit)
+                    if(len(str_profit) > 6):
+                        str_profit = str_profit[:6]
+                    profits += str_profit + " %"
+                self.user.open_orders[ord_index]["profits"] = profits
+                # print(self.user.open_orders[ord_index], price)
+            
+            time.sleep(1)
 
     #Initial window to prompt user to enter api_key and api_secret
     def create_initial_window(self):
@@ -380,13 +413,141 @@ class Gui:
         self.api_secret = self.api_secret_var.get()
         os.mkdir("config")
         # print(self.api_key, self.api_secret)
-        #Create config directory and save the user entered api_key and api_secret to "config/api_keys.py"
-        api_file = open("config/api_keys.py", "w")
+        #Create config directory and save the user entered api_key and api_secret to "config/api_keys"
+        api_file = open("config/api_keys", "w")
         api_file.write(self.api_key)
         api_file.write("\n"+self.api_secret)
         api_file.close()
         self.initial_window.destroy()
         self.initiate_trading()
+
+    #Create open orders card in open orders frame
+    def create_open_order_card(self):
+        if(len(self.user.open_orders) == 0 and len(self.open_order_canvas) > 0):
+            for widget in self.open_orders.winfo_children():
+                widget.destroy()
+            self.open_order_canvas = []
+            self.open_order_profits = []
+            self.window.after(1500, self.create_open_order_card())
+            return
+
+        if(len(self.user.open_orders) > len(self.open_order_canvas)):
+            for order in self.user.open_orders:
+                canvas = Canvas(
+                    self.open_orders,
+                    bg = "#3A7FF6",
+                    height = 174,
+                    width = 431,
+                    bd = 0,
+                    highlightthickness = 0,
+                    relief = "ridge",
+                )
+                self.open_order_canvas.append(canvas)
+                canvas.pack(padx = 10, pady = 10, side=LEFT, fill="x", expand=False)
+                canvas.create_rectangle(
+                    0.0,
+                    0.0,
+                    431.0,
+                    173.0,
+                    fill="#201F4E",
+                    outline="")
+                
+                profit_canvas = canvas.create_text(
+                    79.0,
+                    18.0,
+                    anchor="nw",
+                    text=order["profits"]+"\n",
+                    fill="#1BE509",
+                    font=("Aladin Regular", 18 * -1)
+                )
+                self.open_order_profits.append(profit_canvas)
+                canvas.create_text(
+                    19.0,
+                    18.0,
+                    anchor="nw",
+                    text="PNL: ",
+                    fill="#8BA189",
+                    font=("Aladin Regular", 24 * -1)
+                )
+
+                canvas.create_rectangle(
+                    19.0,
+                    50.0,
+                    173.0,
+                    55.0,
+                    fill="#FCFCFC",
+                    outline="")
+
+                canvas.create_rectangle(
+                    216.0,
+                    0.0,
+                    431.0,
+                    173.0,
+                    fill="#29276D",
+                    outline="")
+
+                canvas.create_text(
+                    232.0,
+                    21.0,
+                    anchor="nw",
+                    text="Usdt amount: "+str(round(self.user.investment_amount, 3))+" usdt ",
+                    fill="#D5E6D4",
+                    font=("Allerta Regular", 14 * -1)
+                )
+
+                canvas.create_text(
+                    232.0,
+                    54.0,
+                    anchor="nw",
+                    text="BTC amount: "+str(order["btc_amount"]),
+                    fill="#D5E6D4",
+                    font=("Allerta Regular", 14 * -1)
+                )
+
+                canvas.create_text(
+                    232.0,
+                    87.0,
+                    anchor="nw",
+                    text="Order ID: "+order["order_id"],
+                    fill="#D5E6D4",
+                    font=("Allerta Regular", 14 * -1)
+                )
+
+                canvas.create_text(
+                    232.0,
+                    120.0,
+                    anchor="nw",
+                    text="time: "+order["time"],
+                    fill="#D5E6D4",
+                    font=("Allerta Regular", 14 * -1)
+                )
+
+                canvas.create_text(
+                    19.0,
+                    73.0,
+                    anchor="nw",
+                    text="Opened order when RSI ",
+                    fill="#D5E6D4",
+                    font=("Allerta Regular", 14 * -1)
+                )
+
+                canvas.create_text(
+                    19.0,
+                    91.0,
+                    anchor="nw",
+                    text="value reached "+order["rsi_status"],
+                    fill="#D5E6D4",
+                    font=("Allerta Regular", 14 * -1)
+                )
+        if(len(self.open_order_canvas) > 0):
+            for p_ind in range(len(self.user.open_orders)):
+                color_hex = "#cf0426"
+                if(self.user.open_orders[p_ind]["profits"][0] == "+"):
+                    color_hex = "#1BE509"
+
+                self.open_order_canvas[p_ind].itemconfigure(self.open_order_profits[p_ind], text=self.user.open_orders[p_ind]["profits"], fill=color_hex)
+
+        self.window.after(1500, self.create_open_order_card)
 
     #Create a new settings window
     def create_settings_window(self):
@@ -437,9 +598,12 @@ class Gui:
             text_box6.place(x=130,y=170)
 
     def close_window(self):
+        self.trading_strategies.continue_trading_flag = False
+        self.continue_flag = False
+        self.trading_thread.join()
+        self.update_profits_thread.join()
         plt.close('all')
         self.window.destroy()
-        self.trading_strategies.continue_trading_flag = False
 
 
 

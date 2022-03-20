@@ -55,6 +55,7 @@ class BinanceEndpoint:
                 order.pop("isWorking")
                 order.pop("price")
                 order.pop("origQuoteOrderQty")
+            orders.reverse()
             return orders
         except socket.timeout:
             print("[x]  socket timed out")
