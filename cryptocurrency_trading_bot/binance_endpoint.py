@@ -1,5 +1,6 @@
 import os
 import time
+import socket
 import requests
 import datetime
 import pandas as pd
@@ -27,7 +28,7 @@ class BinanceEndpoint:
             data_frame.Close = pd.to_numeric(data_frame.Close, downcast="float")
             data_frame.Volume = pd.to_numeric(data_frame.Volume, downcast="float")
             data_frame.set_index("Date", inplace=True)
-    
+            
             return data_frame
 
         except socket.timeout:

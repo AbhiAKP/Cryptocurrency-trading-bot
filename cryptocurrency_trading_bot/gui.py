@@ -29,17 +29,20 @@ class Gui:
     def initiate_trading(self):
         self.continue_flag = True
         self.continue_trading_flag = True
+        self.autmatic_trading = False
         
         self.user = ctb.User()
         self.binance_end_point = ctb.BinanceEndpoint(self.user.get_client())
-        self.user.set_trading_details(1000, 12, 0, self.binance_end_point.get_order_book("BTCUSDT", 50), 5)
+        self.user.set_trading_details(1000, 12, 0, self.binance_end_point.get_order_book("BTCUSDT", 50), 20)
 
         self.trading_strategies = ctb.Trading_Strategies(ticker="BTCUSDT", binance_end_point=self.binance_end_point, user=self.user, paper_trading=True)
-        self.trading_thread = threading.Thread(target = self.trading_strategies.rsi, args = (14,))
-        self.trading_thread.start()
+        self.trading_thread = threading.Thread(target = self.trading_strategies.rsi_trader, args = (14,))
         
         self.update_profits_thread = threading.Thread(target = self.update_profits)
         self.update_profits_thread.start()
+
+        self.update_profits_status = threading.Thread(target = self.update_status)
+        self.update_profits_status.start()
 
         self.portfolio_dummy_data = [{'symbol': 'BTC', 'balance': '0.00000006', 'symbol_name': 'Bitcoin', 'usd_value': '43923.49000000'}, {'symbol': 'SOL', 'balance': '0.37000000', 'symbol_name': 'Solana', 'usd_value': '101.47000000'}, {'symbol': 'HNT', 'balance': '0.41000000', 'symbol_name': 'Helium', 'usd_value': '27.18000000'}, {'symbol': 'USDT', 'balance': '0.07441810', 'symbol_name': 'Tether', 'usd_value': 0.0}, {'symbol': 'VET', 'balance': '95.20000000', 'symbol_name': 'Vechain', 'usd_value': '0.05902000'}, {'symbol': 'DOT', 'balance': '0.20000000', 'symbol_name': 'Polkadot', 'usd_value': '19.63000000'}, {'symbol': 'ICX', 'balance': '4.70000000', 'symbol_name': 'Icon', 'usd_value': '0.77500000'}, {'symbol': 'BNB', 'balance': '0.00032104', 'symbol_name': 'Binance coin', 'usd_value': '426.20000000'}]
         
@@ -73,9 +76,9 @@ class Gui:
         Button(self.menu_frame, image=self.user_icon, bg="white", activebackground="#1f2769", cursor="hand2").pack(side=RIGHT, padx=15)
         Button(self.menu_frame, image=self.setting_icon, bg="white", activebackground="#1f2769", cursor="hand2", command=self.create_settings_window).pack(side=RIGHT, padx=15)
         Button(self.menu_frame, text="Reset Config", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.reset_config).pack(side=LEFT, padx=15, ipadx=5)
-        Button(self.menu_frame, text="Menu2", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2").pack(side=LEFT, padx=15, ipadx=5)
-        Button(self.menu_frame, text="Menu3", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2").pack(side=LEFT, padx=15, ipadx=5)
-        Button(self.menu_frame, text="Menu4", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2").pack(side=LEFT, padx=15, ipadx=5)
+        Button(self.menu_frame, text="Buy Bitcoin", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.buy_bitcoin).pack(side=LEFT, padx=15, ipadx=5)
+        Button(self.menu_frame, text="Sell Bitcoin", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.sell_bitcoin).pack(side=LEFT, padx=15, ipadx=5)
+        Button(self.menu_frame, text="Start/Stop automatic trading", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.start_automatic_trading).pack(side=LEFT, padx=15, ipadx=5)
 
         #creaing the portfolio frame to show open orders and funds
         self.portfolio_frame = Frame(self.window, width=1200, bg="#232a75", height=300, relief=GROOVE, bd=10, borderwidth=10)
@@ -86,10 +89,11 @@ class Gui:
         self.s.configure('.', font=('Arial', 12))
         self.notebook = ttk.Notebook(self.portfolio_frame, width=1200, height=300)
 
-        self.open_orders = Frame(self.notebook, width=1200, height=260, bg="#4656fa")
-        self.order_history = Frame(self.notebook, width=1200, height=260, bg="#4656fa")
-        self.portfolio = Frame(self.notebook, width=1200, height=260, bg="#4656fa")
-        self.available_funds = Frame(self.notebook, width=1200, height=260, bg="#4656fa")
+        self.open_orders = Frame(self.notebook, width=1200, height=260, bg="#190752")
+        self.order_history = Frame(self.notebook, width=1200, height=260, bg="#190752")
+        self.portfolio = Frame(self.notebook, width=1200, height=260, bg="#190752")
+        self.available_funds = Frame(self.notebook, width=1200, height=260, bg="#190752")
+
 
         self.notebook.add(self.open_orders, text="   Open Orders   ")
         self.notebook.add(self.order_history, text="   Order History   ")
@@ -97,6 +101,67 @@ class Gui:
         self.notebook.add(self.available_funds, text="   Funds   ")
 
         self.notebook.pack(side=LEFT, fill="both", expand=True)
+
+        self.green_bar_image = PhotoImage(file="assets/green_bar.png")
+        self.red_bar_image = PhotoImage(file="assets/red_bar.png")
+
+        self.status_frame = Frame(self.portfolio_frame, width=250, height=260, bg="#330a5e")
+        Label(self.status_frame, image=self.red_bar_image, bg="#c2c8ff", width=450).pack()
+        Label(self.status_frame, text="Trading status", font=('Arial', 20, "bold"), bg="#b8d2ff").pack()
+        Label(self.status_frame, image=self.green_bar_image, bg="#c2c8ff", width=450).pack()
+        self.status_frame.pack(side=RIGHT, fill="both")
+
+        self.trade_status_canvas = Canvas(
+            self.status_frame,
+            bg = "#3A7FF6",
+            height = 174,
+            width = 431,
+            bd = 0,
+            highlightthickness = 0,
+            relief = "ridge",
+        )
+        self.trade_status_canvas.pack(padx = 10, pady = 10, side=LEFT, fill="x", expand=False)
+
+        self.trading_status_title = self.trade_status_canvas.create_text(
+            10,
+            10,
+            anchor="nw",
+            text="Automated trading not started yet\n\n",
+            fill="#FCFCFC",
+            font=("Armata Regular", 24 * -1)
+        )
+        self.rsi_value_status = self.trade_status_canvas.create_text(
+            10,
+            50,
+            anchor="nw",
+            text="Rsi value: 0",
+            fill="#FCFCFC",
+            font=("Armata Regular", 14)
+        )
+        self.total_trades_status = self.trade_status_canvas.create_text(
+            10,
+            80,
+            anchor="nw",
+            text="Total trades executed: "+str(len(self.user.trades)),
+            fill="#FCFCFC",
+            font=("Armata Regular", 14)
+        )
+        self.open_orders_status = self.trade_status_canvas.create_text(
+            10,
+            110,
+            anchor="nw",
+            text="Open orders: 0",
+            fill="#FCFCFC",
+            font=("Armata Regular", 14)
+        )
+        self.overall_profits_status = self.trade_status_canvas.create_text(
+            10,
+            140,
+            anchor="nw",
+            text="Overall profits: NA",
+            fill="#FCFCFC",
+            font=("Armata Regular", 14)
+        )
 
         # Label(self.open_orders, text="This is the open orders section").pack(side=TOP)
         # Label(self.order_history, text="This is the order_history section").pack(side=TOP)
@@ -121,8 +186,6 @@ class Gui:
                 temp_string += key + ": " + str(value) + "      "
             Label(self.order_history, text=temp_string, bg="#fae19d", font=('Arial', 10)).pack(ipady=2, ipadx=10, pady=4)
 
-    
-
         #creating a graph frame to plot the candle stick chart
         self.graph_frame = Frame(self.window, width=800, bg="#232a75", height=500, relief=GROOVE, borderwidth=1)
         self.graph_frame.pack(side=LEFT, fill="both", expand=True)
@@ -134,18 +197,28 @@ class Gui:
         self.trade_frame = Frame(self.window, bg="#5b64ba", width=400, height=500, relief=SUNKEN, bd=10)
         self.trade_frame.pack(side=RIGHT, fill="both", expand=False)
 
-        self.green_bar_image = PhotoImage(file="assets/green_bar.png")
-        self.red_bar_image = PhotoImage(file="assets/red_bar.png")
-
         Label(self.trade_frame, image=self.red_bar_image, bg="#c2c8ff", width=400).pack()
         Label(self.trade_frame, text="Recent Trades", font=('Arial', 20, "bold"), bg="#b8d2ff").pack()
         Label(self.trade_frame, image=self.green_bar_image, bg="#c2c8ff", width=400).pack()
     
-        # call update_recent_trades to update the data in trade frame
+        # Call update_recent_trades to update the data in trade frame
         self.update_recent_trades(call_num=0)
 
         self.window.protocol("WM_DELETE_WINDOW",self.close_window)
         self.window.mainloop()
+
+    def buy_bitcoin(self):
+        rsi_val = self.trading_strategies.get_rsi(14)
+        self.trading_strategies.paper_buy(rsi_val)
+    
+    def sell_bitcoin(self):
+        rsi_val = self.trading_strategies.get_rsi(14)
+        self.trading_strategies.paper_sell(rsi_val)
+    
+    def start_automatic_trading(self):
+        self.autmatic_trading = True
+        self.trade_status_canvas.itemconfigure(self.trading_status_title, text="Trading Initiated, Waiting for optimal BUY points", font = ("Armata Regular", 13))
+        self.trading_thread.start()
 
     def create_canvas(self):
             market_colours = mpf.make_marketcolors(up='#07d400',down='#d40000',inherit=True)
@@ -164,8 +237,6 @@ class Gui:
 
             self.window.after(30000, self.create_canvas)
                         
-
-
     def update_recent_trades(self, call_num = None):
         # self.binance_client.get_order_book(self.user.get_client, "BTCUSDT", 10)
 
@@ -249,6 +320,21 @@ class Gui:
                 # print(self.user.open_orders[ord_index], price)
             
             time.sleep(1)
+    
+    def update_status(self):
+        while(self.autmatic_trading):
+            if(len(self.user.open_orders) > 0):
+                self.trade_status_canvas.itemconfigure(self.trading_status_title, text="Trading Initiated, Waiting for optimal SELL points", font = ("Armata Regular", 13))
+            else:
+                self.trade_status_canvas.itemconfigure(self.trading_status_title, text="Trading Initiated, Waiting for optimal BUY points", font = ("Armata Regular", 13))
+
+            self.trade_status_canvas.itemconfigure(self.rsi_value_status, text="Rsi value: "+self.trading_strategies.get_rsi(14))
+            self.trade_status_canvas.itemconfigure(self.total_trades_status, text="Total trades executed: "+str(len(self.user.trades)))
+            self.trade_status_canvas.itemconfigure(self.open_orders_status, text="Open orders: "+str(len(self.user.open_orders)))
+            self.trade_status_canvas.itemconfigure(self.overall_profits_status, text="Overall profits: NA")
+            self.trading_strategies.wait(15)
+        self.trading_strategies.wait(15)
+
 
     #Initial window to prompt user to enter api_key and api_secret
     def create_initial_window(self):
@@ -432,7 +518,8 @@ class Gui:
             return
 
         if(len(self.user.open_orders) > len(self.open_order_canvas)):
-            for order in self.user.open_orders:
+            for order_ind in range(len(self.user.open_orders) - len(self.open_order_canvas)):
+                order = self.user.open_orders[order_ind]
                 canvas = Canvas(
                     self.open_orders,
                     bg = "#3A7FF6",
@@ -535,7 +622,7 @@ class Gui:
                     19.0,
                     91.0,
                     anchor="nw",
-                    text="value reached "+order["rsi_status"],
+                    text="value reached "+str(order["rsi_status"]),
                     fill="#D5E6D4",
                     font=("Allerta Regular", 14 * -1)
                 )
@@ -600,8 +687,10 @@ class Gui:
     def close_window(self):
         self.trading_strategies.continue_trading_flag = False
         self.continue_flag = False
-        self.trading_thread.join()
-        self.update_profits_thread.join()
+        if(self.trading_thread.is_alive()):
+            self.trading_thread.join()
+        if(self.update_profits_thread.is_alive()):
+            self.update_profits_thread.join()
         plt.close('all')
         self.window.destroy()
 

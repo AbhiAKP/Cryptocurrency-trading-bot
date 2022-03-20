@@ -46,38 +46,9 @@ class Trading_Strategies:
         while(self.continue_trading_flag and i < 115):
                 time.sleep(ti)
                 i += 1 
-    def rsi(self, window_length):
-        time.sleep(10)
+    def rsi_trader(self, window_length):
         while(self.continue_trading_flag):
-            df = self.binance_end_point.get_historical_price_data("BTCUSDT", "200 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
-            pd.options.mode.chained_assignment = None
-            df['diff'] = df["Close"].diff(1)
-
-            df['gain'] = df['diff'].clip(lower=0)
-            df['loss'] = df['diff'].clip(upper=0).abs()
-
-            df['avg_gain'] = df['gain'].rolling(window=window_length, min_periods=window_length).mean()[:window_length+1]
-            df['avg_loss'] = df['loss'].rolling(window=window_length, min_periods=window_length).mean()[:window_length+1]
-
-            for i, row in enumerate(df['avg_gain'].iloc[window_length+1:]):
-                df['avg_gain'].iloc[i + window_length + 1] =\
-                    (df['avg_gain'].iloc[i + window_length] *
-                    (window_length - 1) +
-                    df['gain'].iloc[i + window_length + 1])\
-                    / window_length
-
-            for i, row in enumerate(df['avg_loss'].iloc[window_length+1:]):
-                df['avg_loss'].iloc[i + window_length + 1] =\
-                    (df['avg_loss'].iloc[i + window_length] *
-                    (window_length - 1) +
-                    df['loss'].iloc[i + window_length + 1])\
-                    / window_length
-
-            df['rs'] = df['avg_gain'] / df['avg_loss']
-            df['rsi'] = 100 - (100 / (1.0 + df['rs']))
-
-            curr_val = df.iloc[-1][-1]
-
+            rsi_val = self.get_rsi(window_length)
             #TODO: fix this
             # if(curr_val > 50):
             #     self.status = "Selling Assets"
@@ -87,14 +58,50 @@ class Trading_Strategies:
             #     self.paper_buy()
             # else:
             #     self.status = "current rsi value is "+str(curr_val)+", waiting for optimal buy/sell points"
-            
-            self.paper_buy(str(round(curr_val,2)))
+                
+            self.paper_buy(rsi_val)
             self.wait(5)
-            self.paper_buy(str(round(curr_val,2)))
+            self.paper_buy(rsi_val)
             self.wait(5)
-            self.paper_buy(str(round(curr_val,2)))
-            self.wait(60)
-            self.paper_sell(str(round(curr_val,2)))
+            self.paper_buy(rsi_val)
+            self.wait(30)
+            self.paper_sell(rsi_val)
             # print(self.status)
-        
+            
             self.wait(60)
+
+    
+    def get_rsi(self, window_length):
+        df = self.binance_end_point.get_historical_price_data("BTCUSDT", "200 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
+        pd.options.mode.chained_assignment = None
+        df['diff'] = df["Close"].diff(1)
+
+        df['gain'] = df['diff'].clip(lower=0)
+        df['loss'] = df['diff'].clip(upper=0).abs()
+
+        df['avg_gain'] = df['gain'].rolling(window=window_length, min_periods=window_length).mean()[:window_length+1]
+        df['avg_loss'] = df['loss'].rolling(window=window_length, min_periods=window_length).mean()[:window_length+1]
+
+        for i, row in enumerate(df['avg_gain'].iloc[window_length+1:]):
+            df['avg_gain'].iloc[i + window_length + 1] =\
+                (df['avg_gain'].iloc[i + window_length] *
+                (window_length - 1) +
+                df['gain'].iloc[i + window_length + 1])\
+                / window_length
+
+        for i, row in enumerate(df['avg_loss'].iloc[window_length+1:]):
+            df['avg_loss'].iloc[i + window_length + 1] =\
+                (df['avg_loss'].iloc[i + window_length] *
+                (window_length - 1) +
+                df['loss'].iloc[i + window_length + 1])\
+                / window_length
+
+        df['rs'] = df['avg_gain'] / df['avg_loss']
+        df['rsi'] = 100 - (100 / (1.0 + df['rs']))
+
+        curr_val = df.iloc[-1][-1]
+
+        self.rsi_str = str(round(curr_val, 2))
+
+        return self.rsi_str
+
