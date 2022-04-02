@@ -65,7 +65,7 @@ class Gui:
         #constructing frames to bind widgets wherever required
 
         #creating the menu frame which will consists of menubar
-        self.menu_frame = Frame(self.window, bg="#0b1047", width=1200, height=50, relief=SUNKEN, pady=10, padx=50, bd=10, borderwidth=5)
+        self.menu_frame = Frame(self.window, bg="#0b1047", width=1200, height=50, relief=SUNKEN, pady=10, padx=50, bd=10, borderwidth=0)
         self.menu_frame.pack(side=TOP, fill="x", expand=False)
 
         self.setting_photo = PhotoImage(file="assets/user_icons.png")
@@ -82,7 +82,7 @@ class Gui:
         Button(self.menu_frame, text="Start/Stop automatic trading", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.start_automatic_trading).pack(side=LEFT, padx=15, ipadx=5)
 
         #creaing the portfolio frame to show open orders and funds
-        self.portfolio_frame = Frame(self.window, width=1200, bg="#232a75", height=300, relief=GROOVE, bd=10, borderwidth=10)
+        self.portfolio_frame = Frame(self.window, width=1200, bg="#232a75", height=300, relief=GROOVE, bd=10, borderwidth=0)
         self.portfolio_frame.pack(side=BOTTOM, fill="x", expand=False)
 
         #creating multiple tabs in the portfolio frame
@@ -195,7 +195,7 @@ class Gui:
         self.create_canvas()
 
         #creating trade frame and putting recent trade actions into the frame
-        self.trade_frame = Frame(self.window, bg="#5b64ba", width=400, height=500, relief=SUNKEN, bd=10)
+        self.trade_frame = Frame(self.window, bg="#5b64ba", width=400, height=500, relief=SUNKEN, bd=0)
         self.trade_frame.pack(side=RIGHT, fill="both", expand=False)
 
         Label(self.trade_frame, image=self.red_bar_image, bg="#c2c8ff", width=400).pack()
@@ -292,6 +292,8 @@ class Gui:
                 counter += 1
 
     def reset_config(self):
+        self.user.continue_trading_flag = False
+        time.sleep(0.45)
         shutil.rmtree("config")
         self.close_window()
         self.create_initial_window()
