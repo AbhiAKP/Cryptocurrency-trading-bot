@@ -27,14 +27,17 @@ class Gui:
 
     #Create necessary variables for starting trading and initiate trading
     def initiate_trading(self):
-        self.continue_flag = True
-        self.continue_trading_flag = True
         self.autmatic_trading = False
-        
         self.user = ctb.User()
-        self.binance_end_point = ctb.BinanceEndpoint(self.user.get_client())
+        self.binance_end_point = ctb.BinanceEndpoint(self.user.get_client(), self.user)
         self.user.set_trading_details(1000, 12, 0, self.binance_end_point.get_order_book("BTCUSDT", 50), 20)
 
+        self.get_latest_prices_thread = threading.Thread(target=self.binance_end_point.get_historical_price_data, args=("BTCUSDT", "200 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE))
+        self.get_latest_prices_thread.start()
+
+        while(not self.user.buffer_period):
+            time.sleep(0.5)
+        
         self.trading_strategies = ctb.Trading_Strategies(ticker="BTCUSDT", binance_end_point=self.binance_end_point, user=self.user, paper_trading=True)
         self.trading_thread = threading.Thread(target = self.trading_strategies.rsi_trader, args = (14,))
         
@@ -43,9 +46,7 @@ class Gui:
 
         self.update_profits_status_thread = threading.Thread(target = self.update_status)
         self.update_profits_status_thread.start()
-
-        self.portfolio_dummy_data = [{'symbol': 'BTC', 'balance': '0.00000006', 'symbol_name': 'Bitcoin', 'usd_value': '43923.49000000'}, {'symbol': 'SOL', 'balance': '0.37000000', 'symbol_name': 'Solana', 'usd_value': '101.47000000'}, {'symbol': 'HNT', 'balance': '0.41000000', 'symbol_name': 'Helium', 'usd_value': '27.18000000'}, {'symbol': 'USDT', 'balance': '0.07441810', 'symbol_name': 'Tether', 'usd_value': 0.0}, {'symbol': 'VET', 'balance': '95.20000000', 'symbol_name': 'Vechain', 'usd_value': '0.05902000'}, {'symbol': 'DOT', 'balance': '0.20000000', 'symbol_name': 'Polkadot', 'usd_value': '19.63000000'}, {'symbol': 'ICX', 'balance': '4.70000000', 'symbol_name': 'Icon', 'usd_value': '0.77500000'}, {'symbol': 'BNB', 'balance': '0.00032104', 'symbol_name': 'Binance coin', 'usd_value': '426.20000000'}]
-        
+    
         if(self.enable_gui):
            self.create_gui()
 
@@ -224,8 +225,7 @@ class Gui:
             market_colours = mpf.make_marketcolors(up='#07d400',down='#d40000',inherit=True)
             mpf_style  = mpf.make_mpf_style(base_mpf_style='nightclouds',marketcolors=market_colours)
             
-           
-            data_frame = self.binance_end_point.get_historical_price_data("BTCUSDT", "50 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
+            data_frame = self.binance_end_point.get_historical_prices_dataframe(200)
             fig, _ = mpf.plot(data_frame, type="candle", mav=(20), volume=True, tight_layout=True, style=mpf_style, returnfig=True)
 
             #deletes the previous canvas so that the next canvas can occupy the space
@@ -298,28 +298,30 @@ class Gui:
 
     #Keeps updating the profit value of any open orders. Updates every second
     def update_profits(self):
-        while(self.continue_flag):
-            price, time_of_price = self.binance_end_point.get_current_price("BTCUSDT")
-            if(price and time_of_price):
-                for ord_index in range(len(self.user.open_orders)):
-                    curr_val = self.user.open_orders[ord_index]["btc_amount"]*float(price)
-                    if(curr_val >= self.user.investment_amount*self.user.leverage):
-                        profits = "+"
-                        fl_profit = (curr_val - self.user.investment_amount*self.user.leverage)/self.user.investment_amount
-                        str_profit = str(fl_profit)
-                        if(len(str_profit) > 6):
-                            str_profit = str_profit[:6]
-                        profits += str_profit + " %"
-                    else:
-                        profits = "-"
-                        fl_profit = (self.user.investment_amount*self.user.leverage - curr_val)/self.user.investment_amount
-                        str_profit = str(fl_profit)
-                        if(len(str_profit) > 6):
-                            str_profit = str_profit[:6]
-                        profits += str_profit + " %"
-                    self.user.open_orders[ord_index]["profits"] = profits
-                    # print(self.user.open_orders[ord_index], price)
-            
+        while(self.user.continue_trading_flag):
+            if(len(self.user.open_orders) > 0):
+                price = self.binance_end_point.get_current_live_price()
+                if(price):
+                    for ord_index in range(len(self.user.open_orders)):
+                        curr_val = self.user.open_orders[ord_index]["btc_amount"]*float(price)
+                        if(curr_val >= self.user.investment_amount*self.user.leverage):
+                            profits = "+"
+                            fl_profit = (curr_val - self.user.investment_amount*self.user.leverage)/self.user.investment_amount
+                            str_profit = str(fl_profit)
+                            if(len(str_profit) > 6):
+                                str_profit = str_profit[:6]
+                            profits += str_profit + " %"
+                        else:
+                            profits = "-"
+                            fl_profit = (self.user.investment_amount*self.user.leverage - curr_val)/self.user.investment_amount
+                            str_profit = str(fl_profit)
+                            if(len(str_profit) > 6):
+                                str_profit = str_profit[:6]
+                            profits += str_profit + " %"
+                        self.user.open_orders[ord_index]["profits"] = profits
+                else:
+                    print("Failed to get live price, trying again")
+                    continue
             time.sleep(1)
     
     def update_status(self):
@@ -686,8 +688,7 @@ class Gui:
             text_box6.place(x=130,y=170)
 
     def close_window(self):
-        self.trading_strategies.continue_trading_flag = False
-        self.continue_flag = False
+        self.user.continue_trading_flag = False
         if(self.trading_thread.is_alive()):
             self.trading_thread.join()
         if(self.update_profits_thread.is_alive()):

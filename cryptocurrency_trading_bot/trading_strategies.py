@@ -4,7 +4,6 @@ import pandas as pd
 class Trading_Strategies:
     status = "Waiting for Trading to start"
     trades = []
-    continue_trading_flag = True
 
     #Gets ticker(Ticker name of crypto to be traded), binance endpoint, investment_amount(amount of usdt to be invested in each trade), 
     # initial_balance(incase of paper trading), real_trading(bool value indicating whether the bot should do paper trading or real trading)
@@ -12,12 +11,12 @@ class Trading_Strategies:
         self.ticker = ticker
         self.binance_end_point = binance_end_point
         self.user = user
-        self.paper_trading = paper_trading
+        self.paper_trading = paper_trading      
     
     #Creates a paper buy order
     def paper_buy(self, rsi_status):
         if(self.user.investment_amount < self.user.paper_balance):
-            price, time = self.binance_end_point.get_current_price(self.ticker)
+            price, time = self.binance_end_point.get_last_close()
             self.user.holding_amount += round(self.user.investment_amount*self.user.leverage/float(price), 8)
             self.user.paper_balance -= self.user.investment_amount
 
@@ -28,11 +27,10 @@ class Trading_Strategies:
             self.user.trades.insert(0, {"symbol":self.ticker, "executedQty":round(self.user.investment_amount*self.user.leverage/float(price), 8),"cummulativeQuoteQty": inv_str ,"side": "BUY" ,"type":"PAPR", "leverage": self.user.leverage, "btc_balance": self.user.holding_amount ,"time":time, "price":price, "trade_type":"Paper BUY"})
             self.user.open_orders.insert(0, {"symbol":self.ticker, "btc_amount":round(self.user.investment_amount*self.user.leverage/float(price), 8),"cummulativeQuoteQty": inv_str  ,"time":time, "trade_type":"Paper BUY", "profits":"+0.0%", "rsi_status": rsi_status, "order_id": "PAPRBUY"+str(len(self.user.trades))})
             self.user.new_trade_flag = True
-            # print(self.user.trades[-1])
 
     def paper_sell(self, rsi_status):
         if(self.user.holding_amount > 0.0):
-            price, time = self.binance_end_point.get_current_price(self.ticker)
+            price, time = self.binance_end_point.get_last_close()
             bin_amount = ((self.user.investment_amount*(self.user.leverage - 1))*len(self.user.open_orders))/float(price)
             self.user.paper_balance += float(price)*(self.user.holding_amount - bin_amount)
             self.user.trades.insert(0, {"symbol":self.ticker, "executedQty": round(self.user.holding_amount, 8), "cummulativeQuoteQty": round(float(price)*(self.user.holding_amount - bin_amount), 8), "side": "SELL" ,"type":"PAPR", "account_balance": self.user.paper_balance, "btc_balance": self.user.holding_amount ,"time":time, "price":price, "trade_type":"Paper SELL", "rsi_status": rsi_status})
@@ -43,36 +41,24 @@ class Trading_Strategies:
     def wait(self, sleep_time):
         ti = sleep_time/115
         i = 0
-        while(self.continue_trading_flag and i < 115):
+        while(self.user.continue_trading_flag and i < 115):
                 time.sleep(ti)
                 i += 1 
     def rsi_trader(self, window_length):
-        while(self.continue_trading_flag):
+        while(self.user.continue_trading_flag):
             rsi_val = self.get_rsi(window_length)
             #TODO: fix this
-            # if(curr_val > 50):
-            #     self.status = "Selling Assets"
-            #     self.paper_sell()
-            # elif(curr_val < 50):
-            #     self.status = "Buying Assets"
-            #     self.paper_buy()
-            # else:
-            #     self.status = "current rsi value is "+str(curr_val)+", waiting for optimal buy/sell points"
-                
-            self.paper_buy(rsi_val)
-            self.wait(5)
-            self.paper_buy(rsi_val)
-            self.wait(5)
-            self.paper_buy(rsi_val)
-            self.wait(30)
-            self.paper_sell(rsi_val)
-            # print(self.status)
-            
+            if(curr_val > 50):
+                self.status = "Selling Assets"
+                self.paper_sell()
+            elif(curr_val < 50):
+                self.status = "Buying Assets"
+                self.paper_buy()           
             self.wait(60)
 
     
     def get_rsi(self, window_length):
-        df = self.binance_end_point.get_historical_price_data("BTCUSDT", "200 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE)
+        df = self.binance_end_point.get_historical_prices_dataframe(200)
         pd.options.mode.chained_assignment = None
         df['diff'] = df["Close"].diff(1)
 

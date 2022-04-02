@@ -13,17 +13,20 @@ class User():
 
         self.open_orders = []
         self.new_trade_flag = True
+        self.continue_trading_flag = True
+        self.buffer_period = False
         
-        try:
+        try:    
             self._client = Client(self._api_key, self._api_secret, {"verify": True, "timeout": 20})
         except socket.timeout:
-            print("[x] socket timed out")
+            print("[x] socket timed out while creating client object, try again")
             exit()
         except requests.exceptions.Timeout:
-            print("[x] socket timed out")
+            print("[x] request timed out while creating client object, try again")
             exit()
         except requests.exceptions.ConnectionError:
-            print("[x] socket timed out")
+            print("[x] Connection error occurred while trying to create client object, try again")
+            exit()
     
     def set_trading_details(self, paper_balance, investment_amount, holding_amount, trades, leverage):
         self.paper_balance = paper_balance
