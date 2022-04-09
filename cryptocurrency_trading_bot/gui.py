@@ -7,6 +7,7 @@ from tkinter import *
 from tkinter import ttk
 from pathlib import Path
 import mplfinance as mpf
+from ttkthemes import ThemedTk
 import matplotlib.pyplot as plt
 import cryptocurrency_trading_bot as ctb
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -32,7 +33,7 @@ class Gui:
         self.binance_end_point = ctb.BinanceEndpoint(self.user.get_client(), self.user)
         self.user.set_trading_details(1000, 12, 0, self.binance_end_point.get_order_book("BTCUSDT", 50), 20)
 
-        self.get_latest_prices_thread = threading.Thread(target=self.binance_end_point.get_historical_price_data, args=("BTCUSDT", "200 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE))
+        self.get_latest_prices_thread = threading.Thread(target=self.binance_end_point.get_historical_price_data, args=("BTCUSDT", "80 minute ago UTC", self.user.get_client().KLINE_INTERVAL_1MINUTE))
         self.get_latest_prices_thread.start()
 
         while(not self.user.buffer_period):
@@ -51,13 +52,18 @@ class Gui:
            self.create_gui()
 
     def create_gui(self):
-        self.window = Tk()
+        self.window = ThemedTk(theme="arc")
+        # self.window = Tk()
         self.window.title("Cryptocurrency trading bot")
         width= self.window.winfo_screenwidth()
-        height= self.window.winfo_screenheight()               
+        height= self.window.winfo_screenheight()
+        # print(self.window.winfo_screenheight() )               
         self.window.geometry("%dx%d" % (width, height))
         self.window.resizable(True, True)
         self.window.config()
+
+        # style = ttk.Style(self.window)
+        # style.theme_use()
 
         self.app_icon = PhotoImage(file="assets/icons.png")
         self.window.iconphoto(True, self.app_icon)
@@ -68,54 +74,56 @@ class Gui:
         self.menu_frame = Frame(self.window, bg="#0b1047", width=1200, height=50, relief=SUNKEN, pady=10, padx=50, bd=10, borderwidth=0)
         self.menu_frame.pack(side=TOP, fill="x", expand=False)
 
-        self.setting_photo = PhotoImage(file="assets/user_icons.png")
-        self.user_icon = self.setting_photo.subsample(3, 3)
+        self.setting_photo = PhotoImage(file="assets/settings_transparent.png")
+        self.user_photo = PhotoImage(file="assets/profile_transparent.png")
 
-        self.user_photo = PhotoImage(file="assets/setting_icon.png")
-        self.setting_icon = self.user_photo.subsample(3, 3)
+        resetConfigButtonImage = PhotoImage(file="assets/resetconfig.png")
+        buyBitcoinButtonImage = PhotoImage(file="assets/buybitcoin.png")
+        sellBitcoinButtonImage = PhotoImage(file="assets/sellbitcoin.png")
+        startAutoButtonImage = PhotoImage(file="assets/startauto.png")
 
-        Button(self.menu_frame, image=self.user_icon, bg="white", activebackground="#1f2769", cursor="hand2").pack(side=RIGHT, padx=15)
-        Button(self.menu_frame, image=self.setting_icon, bg="white", activebackground="#1f2769", cursor="hand2", command=self.create_settings_window).pack(side=RIGHT, padx=15)
-        Button(self.menu_frame, text="Reset Config", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.reset_config).pack(side=LEFT, padx=15, ipadx=5)
-        Button(self.menu_frame, text="Buy Bitcoin", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.buy_bitcoin).pack(side=LEFT, padx=15, ipadx=5)
-        Button(self.menu_frame, text="Sell Bitcoin", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.sell_bitcoin).pack(side=LEFT, padx=15, ipadx=5)
-        Button(self.menu_frame, text="Start/Stop automatic trading", font=('Helvetica', 12), activebackground="#1f2769", activeforeground="white", cursor="hand2", command=self.start_automatic_trading).pack(side=LEFT, padx=15, ipadx=5)
+        Button(self.menu_frame, image=self.setting_photo, activebackground="#101a85", activeforeground="#0b1047", background="#0b1047", cursor="hand2", borderwidth=0, bd=0, highlightthickness=0, command=self.create_settings_window).pack(side=RIGHT, padx=15)
+        Button(self.menu_frame, image=self.user_photo, activebackground="#101a85", activeforeground="#0b1047", background="#0b1047", cursor="hand2", borderwidth=0, bd=0, highlightthickness=0).pack(side=RIGHT, padx=15)
+        Button(self.menu_frame, image=resetConfigButtonImage, font=('Helvetica', 12), activebackground="#ffffff", activeforeground="#0b1047", background="#0b1047" ,cursor="hand2", command=self.reset_config, borderwidth=0, bd=0, highlightthickness=0 ).pack(side=LEFT, padx=15, ipadx=5)
+        Button(self.menu_frame, image=buyBitcoinButtonImage, font=('Helvetica', 12), activebackground="#ffffff", activeforeground="#0b1047", background="#0b1047" ,cursor="hand2", command=self.buy_bitcoin, borderwidth=0, bd=0, highlightthickness=0 ).pack(side=LEFT, padx=15, ipadx=5)
+        Button(self.menu_frame, image=sellBitcoinButtonImage, font=('Helvetica', 12), activebackground="#ffffff", activeforeground="white", background="#0b1047" ,cursor="hand2", command=self.sell_bitcoin, borderwidth=0, bd=0, highlightthickness=0 ).pack(side=LEFT, padx=15, ipadx=5)
+        Button(self.menu_frame, image=startAutoButtonImage, font=('Helvetica', 12), activebackground="#ffffff", activeforeground="white", background="#0b1047" ,cursor="hand2", command=self.start_automatic_trading, borderwidth=0, bd=0, highlightthickness=0 ).pack(side=LEFT, padx=15, ipadx=5)
 
         #creaing the portfolio frame to show open orders and funds
         self.portfolio_frame = Frame(self.window, width=1200, bg="#232a75", height=300, relief=GROOVE, bd=10, borderwidth=0)
         self.portfolio_frame.pack(side=BOTTOM, fill="x", expand=False)
 
+        # Create an instance of ttk style, that's used in the notebook
+        style = ttk.Style()
+        style.theme_use('default')
+        style.configure('TNotebook.Tab', background="#0b1047")
+        style.map("TNotebook", background= [("selected", "#0b1047")])
+
         #creating multiple tabs in the portfolio frame
         self.s = ttk.Style()
         self.s.configure('.', font=('Arial', 12))
+        #TODO
         self.notebook = ttk.Notebook(self.portfolio_frame, width=1200, height=300)
 
         self.open_orders = Frame(self.notebook, width=1200, height=260, bg="#190752")
-        self.order_history = Frame(self.notebook, width=1200, height=260, bg="#190752")
-        self.portfolio = Frame(self.notebook, width=1200, height=260, bg="#190752")
-        self.available_funds = Frame(self.notebook, width=1200, height=260, bg="#190752")
-
 
         self.notebook.add(self.open_orders, text="   Open Orders   ")
-        self.notebook.add(self.order_history, text="   Order History   ")
-        self.notebook.add(self.portfolio, tex="   Portfolio   ")
-        self.notebook.add(self.available_funds, text="   Funds   ")
-
+        
         self.notebook.pack(side=LEFT, fill="both", expand=True)
 
         self.green_bar_image = PhotoImage(file="assets/green_bar.png")
-        self.red_bar_image = PhotoImage(file="assets/red_bar.png")
+        self.red_bar_image = PhotoImage(file="assets/redgreen.png")
 
-        self.status_frame = Frame(self.portfolio_frame, width=250, height=260, bg="#330a5e")
+        self.status_frame = Frame(self.portfolio_frame, width=250, height=260, bg="#3d47ad")
         Label(self.status_frame, image=self.red_bar_image, bg="#c2c8ff", width=450).pack()
-        Label(self.status_frame, text="Trading status", font=('Arial', 20, "bold"), bg="#b8d2ff").pack()
-        Label(self.status_frame, image=self.green_bar_image, bg="#c2c8ff", width=450).pack()
+        Label(self.status_frame, text="Trading status", font=('Arial', 20, "bold"), bg="#3d47ad", fg="#ffffff").pack()
+        Label(self.status_frame, image=self.red_bar_image, bg="#c2c8ff", width=450).pack()
         self.status_frame.pack(side=RIGHT, fill="both")
 
         self.trade_status_canvas = Canvas(
             self.status_frame,
-            bg = "#3A7FF6",
-            height = 174,
+            bg = "#0b1047",
+            height = int(self.window.winfo_screenheight()/4),
             width = 431,
             bd = 0,
             highlightthickness = 0,
@@ -169,23 +177,9 @@ class Gui:
         # Label(self.portfolio, text="This is the trade history section").pack(side=TOP)
         # Label(self.available_funds, text="This is the funds section").pack(side=TOP)
 
-
-        # #displaying open_orders data
-        # for x in range(11):
-        #     temp_string = ""
-        #     for key,value in self.portfolio_dummy_data[0].items():
-        #         temp_string += key + ": " + str(value) + "      "
-        #     Label(self.open_orders, text=temp_string, bg="#fae19d", font=('Arial', 10)).pack(ipady=2, ipadx=10, pady=4, fill="x")
         self.open_order_canvas = []
         self.open_order_profits = []
         self.create_open_order_card()
-
-        #displaying order_history data
-        for x in range(11):
-            temp_string = ""
-            for key,value in self.user.trades[0].items():
-                temp_string += key + ": " + str(value) + "      "
-            Label(self.order_history, text=temp_string, bg="#fae19d", font=('Arial', 10)).pack(ipady=2, ipadx=10, pady=4)
 
         #creating a graph frame to plot the candle stick chart
         self.graph_frame = Frame(self.window, width=800, bg="#232a75", height=500, relief=GROOVE, borderwidth=1)
@@ -195,12 +189,12 @@ class Gui:
         self.create_canvas()
 
         #creating trade frame and putting recent trade actions into the frame
-        self.trade_frame = Frame(self.window, bg="#5b64ba", width=400, height=500, relief=SUNKEN, bd=0)
+        self.trade_frame = Frame(self.window, bg="#3d47ad", width=400, height=500, relief=SUNKEN, bd=0)
         self.trade_frame.pack(side=RIGHT, fill="both", expand=False)
 
+        Label(self.trade_frame, text="Recent Trades", font=('Arial', 20, "bold"), bg="#3d47ad", fg="#ffffff").pack(pady=3)
         Label(self.trade_frame, image=self.red_bar_image, bg="#c2c8ff", width=400).pack()
-        Label(self.trade_frame, text="Recent Trades", font=('Arial', 20, "bold"), bg="#b8d2ff").pack()
-        Label(self.trade_frame, image=self.green_bar_image, bg="#c2c8ff", width=400).pack()
+        # Label(self.trade_frame, image=self.green_bar_image, bg="#c2c8ff", width=400).pack()
     
         # Call update_recent_trades to update the data in trade frame
         self.update_recent_trades(call_num=0)
@@ -222,18 +216,21 @@ class Gui:
         self.trading_thread.start()
 
     def create_canvas(self):
-            market_colours = mpf.make_marketcolors(up='#07d400',down='#d40000',inherit=True)
-            mpf_style  = mpf.make_mpf_style(base_mpf_style='nightclouds',marketcolors=market_colours)
+            market_colours = mpf.make_marketcolors(up='#00ff00',down='#ff0040',inherit=True)
+            mpf_style  = mpf.make_mpf_style(base_mpf_style='nightclouds',marketcolors=market_colours,gridcolor="#040729", facecolor="#040729")
             
-            data_frame = self.binance_end_point.get_historical_prices_dataframe(200)
-            fig, _ = mpf.plot(data_frame, type="candle", mav=(20), volume=True, tight_layout=True, style=mpf_style, returnfig=True)
-
+            bluegradientimage = plt.imread("assets/bluegradient.jpg")
+            data_frame = self.binance_end_point.get_historical_prices_dataframe(300)
+            fig, ax = mpf.plot(data_frame, type="candle", mav=(20), volume=True, tight_layout=True, style=mpf_style, returnfig=True)
+            
+            plt.axis("off")
             #deletes the previous canvas so that the next canvas can occupy the space
             if (isinstance(self.canvas, matplotlib.backends.backend_tkagg.FigureCanvasTkAgg)):
                 self.canvas.get_tk_widget().destroy()
+                plt.close('all')
             self.canvas = FigureCanvasTkAgg(fig, self.graph_frame)
             self.canvas.draw()
-            self.canvas.get_tk_widget().pack(side=LEFT, fill="both", expand=True, padx=35, pady=15)
+            self.canvas.get_tk_widget().pack(side=LEFT, fill="both", expand=True, padx=10, pady=10)
 
             self.window.after(30000, self.create_canvas)
                         
@@ -270,7 +267,9 @@ class Gui:
                 btn_bg = "#bbffb3"
 
             display_text = " {}\t{}\t{}\t{}\t{} ".format(symbol, executed_qty, cummulative_qty, trade_type, trade_side)
-            self.single_trade_button.append( Button(self.trade_frame, text=display_text, bg=btn_bg, command=lambda y=x: self.trade_window(y), width=58))
+            self.single_trade_button.append( Button(self.trade_frame, text=display_text, bg=btn_bg, command=lambda y=x: self.trade_window(y), width=58, borderwidth=0))
+            # self.single_trade_button[-1].tk.call("source", "sun-valley.tcl")
+            # self.single_trade_button[-1].tk.call("set_theme", "light")
             self.single_trade_button[-1].pack(padx=10, pady=11)
         self.user.new_trade_flag = False
         self.window.after(5000, self.update_recent_trades)

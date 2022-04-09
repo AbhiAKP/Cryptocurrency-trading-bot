@@ -47,13 +47,13 @@ class Trading_Strategies:
     def rsi_trader(self, window_length):
         while(self.user.continue_trading_flag):
             rsi_val = self.get_rsi(window_length)
-            #TODO: fix this
+            curr_val = int(float(rsi_val))
             if(curr_val > 50):
                 self.status = "Selling Assets"
-                self.paper_sell()
+                self.paper_sell(rsi_val)
             elif(curr_val < 50):
                 self.status = "Buying Assets"
-                self.paper_buy()           
+                self.paper_buy(rsi_val)           
             self.wait(60)
 
     
